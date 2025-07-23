@@ -1,9 +1,13 @@
+import Colors from '@/constants/Colors';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { TouchableOpacity } from 'react-native';
 import 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+
 
 
 export {
@@ -19,11 +23,12 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+const InitialLayout = () => {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
-  });
+  })
+  const router = useRouter();
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -40,14 +45,27 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+        <Stack>
+        <Stack.Screen name="index" options={{headerShown:false}}/>
+        <Stack.Screen name="signup" options={{
+          title: '',
+          headerBackTitle:'',
+          headerShadowVisible:false,
+          headerStyle: {backgroundColor: Colors.background},
+          headerLeft:()=>(
+            <TouchableOpacity>
+              <Ionicons name="arrow-back" size={34} color={Colors.dark} />
+            </TouchableOpacity>
+          )
+        }}/>
+      </Stack>
+      )
 }
 
-function RootLayoutNav() {
+export default function RootLayoutNav () {
 
   return (
-      <Stack>
-        <Stack.Screen name="index" options={{headerShown:false}}/>
-      </Stack>
-  );
+    <InitialLayout/>
+  )
 }
