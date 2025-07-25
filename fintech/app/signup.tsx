@@ -2,13 +2,32 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import React, { useState } from 'react'
 import { defaultStyles } from '@/constants/Styles'
 import Colors from '@/constants/Colors'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
+import { useSignUp } from '@clerk/clerk-react'
 
 const Page = () => {
   const [countryCode, setCountryCode] = useState('+49')
   const [phoneNumber, setPhoneNumber] = useState('')
   const keyboardVerticalOffset = Platform.OS ==='ios' ? 80: 0
-  const onSignup= async() => {}
+  const router = useRouter();
+  const {signUp} = useSignUp();
+
+  const onSignup= async() => {
+    const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+    router.push({ pathname: `/verify/[phone]`, params: { phone: fullPhoneNumber } });
+    /*
+    try {
+      await signUp!.create({
+        phoneNumber: fullPhoneNumber,
+      });
+      router.push({ pathname: `/verify/[phone]`, params: { phone: fullPhoneNumber } });
+    } catch (error) {
+      console.error('Error signing up:', error);
+    } */
+  }
+  
+  
+  
   return (
     <KeyboardAvoidingView style={{flex:1}} behavior='padding' keyboardVerticalOffset={keyboardVerticalOffset}>
     <View style={defaultStyles.container}>
