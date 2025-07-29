@@ -6,14 +6,17 @@ import Colors from '@/constants/Colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { TextInput } from 'react-native-gesture-handler'
+import { router } from '@/.expo/types/router'
+import { useRouter } from 'expo-router'
 
 
 const CustomHeader = () => {
     const {top} = useSafeAreaInsets()
+    const router = useRouter()
   return (
     <BlurView intensity={80} tint='extraLight' style={{paddingTop: top }}>
       <View style={styles.container}>
-        <TouchableOpacity style={styles.roundBtn} onPress={() => console.log('Menu pressed')}>
+        <TouchableOpacity style={styles.roundBtn} onPress={() => console.log('Menu pressed')} onLongPress={() => router.push(__DEV__ ? '/_sitemap' : '/')}>
           <Text style={{color: '#fff', fontWeight: 500, fontSize: 16}}>SG</Text>
         </TouchableOpacity>
         <View style={styles.searchSection}>
@@ -23,6 +26,12 @@ const CustomHeader = () => {
                 placeholderTextColor={Colors.dark}
                 style={styles.input}
             />
+        </View>
+        <View style={styles.circle}>
+            <Ionicons name='stats-chart' size={20} color={Colors.dark} />
+        </View>
+        <View style={styles.circle}>
+            <Ionicons name='card' size={20} color={Colors.dark} />
         </View>
         </View>
     </BlurView>
