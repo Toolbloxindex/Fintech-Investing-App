@@ -24,8 +24,8 @@ const tiles = [
 
 const WidgetList = () => {
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: "black", paddingHorizontal: MARGIN }}
+    <View
+      style={{ paddingHorizontal: MARGIN, marginBottom: MARGIN }}
     >
       <SortableList
         editing={true}
@@ -33,17 +33,15 @@ const WidgetList = () => {
           console.log(JSON.stringify(positions, null, 2))
         }
       >
-        {[...tiles, ...tiles].map((tile, index) => (
-          <View></View>
-/*           <Tile
+        {tiles.map((tile, index) => (
+          <Tile
             onLongPress={() => true}
             key={tile.id + "-" + index}
-            id={tile.id + "-" + index}
-            uri={tile.uri}
-          /> */
+            id={tile.id}
+          /> 
         ))}
       </SortableList>
-    </SafeAreaView>
+    </View>
   );
 };
 
