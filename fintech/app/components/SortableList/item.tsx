@@ -9,6 +9,8 @@ import Animated, {
   withTiming,
   useSharedValue,
   runOnJS,
+  SharedValue,
+  AnimatedRef,
 } from "react-native-reanimated";
 import {
   PanGestureHandler,
@@ -27,12 +29,12 @@ import {
 
 interface ItemProps {
   children: ReactNode;
-  positions: Animated.SharedValue<Positions>;
+  positions: SharedValue<Positions>;
   id: string;
   editing: boolean;
   onDragEnd: (diffs: Positions) => void;
-  scrollView: RefObject<Animated.ScrollView>;
-  scrollY: Animated.SharedValue<number>;
+  scrollView: AnimatedRef<Animated.ScrollView>;
+  scrollY: SharedValue<number>;
 }
 
 const Item = ({
