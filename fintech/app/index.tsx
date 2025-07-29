@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import React from 'react'
+import React, { useState } from 'react'
 import { useAssets } from 'expo-asset'
 import { ResizeMode, Video } from 'expo-av'
 import { Link } from 'expo-router'
@@ -8,29 +8,43 @@ import Colors from '@/constants/Colors'
 
 const Page = () => {
   const [assets] = useAssets([require('@/assets/videos/intro.mp4')])
+  const [videoLoaded, setVideoLoaded] = useState(false)
+
+  const handleVideoLoad = () => {
+    setVideoLoaded(true)
+  }
+
   return (
     <View style={styles.container}>
-
       {assets && (
-        <Video 
-        resizeMode={ResizeMode.COVER}
-        isMuted
-        isLooping
-        shouldPlay
-        source={{uri: assets[0].uri}} style={styles.video}/>
+        <Video
+          resizeMode={ResizeMode.COVER}
+          isMuted
+          isLooping
+          shouldPlay
+          source={{ uri: assets[0].localUri || assets[0].uri }}
+          style={styles.video}
+          onLoad={handleVideoLoad}
+        />
       )}
       <View style={{marginTop: 80, padding: 20}}>
         <Text style={styles.header}>Ready to change the way you money?</Text>
       </View>
       <View style={styles.buttons}>
-        <Link href={'/login'}  style={[defaultStyles.pillButton, {flex: 1, backgroundColor: Colors.dark}]} asChild>
+        <Link
+          href={'/login'}
+          style={[defaultStyles.pillButton, { flex: 1, backgroundColor: Colors.dark }]}
+          asChild>
           <TouchableOpacity>
             <Text style={{color: 'white', fontSize:22, fontWeight: 500}}>Login</Text>
           </TouchableOpacity>
         </Link>
-        <Link href={'/signup'}  style={[defaultStyles.pillButton, {flex: 1, backgroundColor: '#fff'}]} asChild>
+        <Link
+          href={'/signup'}
+          style={[defaultStyles.pillButton, { flex: 1, backgroundColor: '#fff' }]}
+          asChild>
           <TouchableOpacity>
-            <Text style={{fontSize:22, fontWeight: 500}}>Sign up</Text>
+            <Text style={{ fontSize: 22, fontWeight: '500' }}>Sign up</Text>
           </TouchableOpacity>
         </Link>
       </View>

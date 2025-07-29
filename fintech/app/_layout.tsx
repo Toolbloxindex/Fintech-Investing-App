@@ -1,16 +1,17 @@
 import Colors from '@/constants/Colors';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts } from 'expo-font';
-import { Link, Stack, useRouter } from 'expo-router';
+import { Link, Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect } from 'react';
-import { TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { TouchableOpacity, Text, View, ActivityIndicator } from 'react-native';
 import 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useAssets } from 'expo-asset';
 
-import { ClerkProvider } from '@clerk/clerk-expo';
+import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 
 import * as SecureStore from 'expo-secure-store';
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -46,25 +47,69 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 const InitialLayout = () => {
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontsError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
-  })
+  });
+  const [assets] = useAssets([require('../assets/videos/intro.mp4')]);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [appReady, setAppReady] = useState(false); // Track overall app readiness
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
+  const segments = useSegments();
+
+  // Debugging logs to track resource states
+  useEffect(() => {
+    console.log('Fonts Loaded:', fontsLoaded);
+    console.log('Fonts Error:', fontsError);
+    console.log('Auth Loaded:', isLoaded);
+    console.log('Assets Loaded:', !!assets);
+    console.log('Video Loaded:', videoLoaded);
+  }, [fontsLoaded, fontsError, isLoaded, assets, videoLoaded]);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    if (fontsError) throw fontsError;
+  }, [fontsError]);
 
   useEffect(() => {
-    if (loaded) {
+    if (fontsLoaded && assets) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [fontsLoaded, assets]);
 
-  if (!loaded) {
-    return null;
+  useEffect(() => {
+    // Check if all resources are loaded
+    if (fontsLoaded && isLoaded && assets && videoLoaded) {
+      console.log('All resources loaded. App is ready.');
+      setAppReady(true); // Mark app as ready
+    }
+  }, [fontsLoaded, isLoaded, assets, videoLoaded]);
+
+  // Mark video as loaded when assets are available
+  useEffect(() => {
+    if (assets) {
+      setVideoLoaded(true);
+    }
+  }, [assets]);
+
+  useEffect(() => {
+    if (!appReady) return; // Wait until the app is ready
+    const inAuthGroup = segments[0] === '(authenticated)';
+    if (isSignedIn && !inAuthGroup) {
+      router.replace('/(authenticated)/(tabs)/home');
+    } else if (!isSignedIn && inAuthGroup) {
+      router.replace('/');
+    }
+  }, [isSignedIn, appReady]);
+
+  if (!appReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ color: 'white', marginTop: 10 }}>Loading...</Text>
+      </View>
+    );
   }
 
   return (
@@ -111,6 +156,7 @@ const InitialLayout = () => {
             </TouchableOpacity>
           )
         }}/>
+        <Stack.Screen name="(authenticated)/(tabs)" options={{headerShown: false}}/>
       </Stack>
       )
 }
