@@ -95,7 +95,6 @@ const InitialLayout = () => {
   }, [assets]);
 
   useEffect(() => {
-    console.log("isSignedIn", isSignedIn)
     if (!appReady) return; // Wait until the app is ready
     const inAuthGroup = segments[0] === '(authenticated)';
     if (isSignedIn && !inAuthGroup) {
