@@ -49,9 +49,9 @@ const home = () => {
             <View style={{gap: 6, alignItems: 'flex-end'}}>
               <Text>{currency.quote.EUR.price.toFixed(2)} €</Text>
               <View style={{flexDirection: 'row', gap: 4}}>
-                <Ionicons name={currency.quote.EUR.percent_change_1h ? 'caret-up': 'caret-down'} size={16} color={currency.quote.EUR.percent_change_1h > 0 ? 'green' : 'red'}/>
+                <Ionicons name={currency.quote.EUR.percent_change_24h > 0? 'caret-up': 'caret-down'} size={16} color={currency.quote.EUR.percent_change_24h > 0 ? 'green' : 'red'}/>
                 <Text style={{
-                  color: currency.quote.EUR.percent_change_1h > 0 ? 'green' : 'red'}}>{currency.quote.EUR.percent_change_1h.toFixed(2)} %</Text>
+                  color: currency.quote.EUR.percent_change_24h > 0 ? 'green' : 'red'}}>{currency.quote.EUR.percent_change_24h.toFixed(2)} %</Text>
               </View>
             </View>
             

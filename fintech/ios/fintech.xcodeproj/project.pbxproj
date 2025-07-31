@@ -26,7 +26,7 @@
 		A9EE87CB14A3916C8D60865B /* Pods-fintech.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fintech.debug.xcconfig"; path = "Target Support Files/Pods-fintech/Pods-fintech.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = fintech/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BFFEBA403416FEAF1F3B46AE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = fintech/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		BFFEBA403416FEAF1F3B46AE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = fintech/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = fintech/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* fintech-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "fintech-Bridging-Header.h"; path = "fintech/fintech-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -73,7 +73,6 @@
 				A9EE87CB14A3916C8D60865B /* Pods-fintech.debug.xcconfig */,
 				9A48EF05DC2D6218432C13F6 /* Pods-fintech.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -166,7 +165,9 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
+						DevelopmentTeam = Z3LNAFWTJW;
 						LastSwiftMigration = 1250;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -339,13 +340,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = fintech/fintech.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z3LNAFWTJW;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = fintech/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -358,7 +363,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.fintech;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thomascorreia.fintechapp;
 				PRODUCT_NAME = fintech;
 				SWIFT_OBJC_BRIDGING_HEADER = "fintech/fintech-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -375,8 +380,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = fintech/fintech.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z3LNAFWTJW;
 				INFOPLIST_FILE = fintech/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -389,7 +398,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.fintech;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thomascorreia.fintechapp;
 				PRODUCT_NAME = fintech;
 				SWIFT_OBJC_BRIDGING_HEADER = "fintech/fintech-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -453,10 +462,7 @@
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -511,10 +517,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;

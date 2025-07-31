@@ -14,7 +14,7 @@ enum SignInType {
 }
 
 const Page = () => {
-  const [countryCode, setCountryCode] = useState('+13')
+  const [countryCode, setCountryCode] = useState('+1')
   const [phoneNumber, setPhoneNumber] = useState('')
   const keyboardVerticalOffset = Platform.OS ==='ios' ? 80: 0
   const router = useRouter();
@@ -60,6 +60,7 @@ const Page = () => {
           placeholder="Country Code"
           placeholderTextColor={Colors.gray}
           value={countryCode}
+          onChangeText={setCountryCode}
         />
         <TextInput 
           style={[styles.input, {flex:1}]}
