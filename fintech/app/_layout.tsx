@@ -10,11 +10,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAssets } from 'expo-asset';
-
+import { Query, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
-
 import * as SecureStore from 'expo-secure-store';
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+const queryClient = new QueryClient();
 
 const tokenCache = {
   async getToken(key: string) {
@@ -97,7 +98,7 @@ const InitialLayout = () => {
     if (!appReady) return; // Wait until the app is ready
     const inAuthGroup = segments[0] === '(authenticated)';
     if (isSignedIn && !inAuthGroup) {
-      router.replace('/(authenticated)/(tabs)/home');
+      router.replace('/(authenticated)/(tabs)/crypto');
     } else if (!isSignedIn && inAuthGroup) {
       router.replace('/');
     }
@@ -165,11 +166,13 @@ export default function RootLayoutNav () {
 
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache}>
+      <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{flex:1}}>
         <StatusBar style='light'/>
         <InitialLayout/>
       </GestureHandlerRootView>
-    </ClerkProvider>
+      </QueryClientProvider>
+  </ClerkProvider>
 
   )
 }
