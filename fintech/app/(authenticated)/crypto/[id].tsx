@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 0,
     color: Colors.gray,
   },
   categoryText: {
