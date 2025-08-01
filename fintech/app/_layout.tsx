@@ -189,7 +189,7 @@ export default function RootLayoutNav () {
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache}>
       <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{flex:1}}>
-        <StatusBar style='light'/>
+        <StatusBar style="dark" />
         <InitialLayout/>
       </GestureHandlerRootView>
       </QueryClientProvider>

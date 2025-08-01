@@ -1,4 +1,3 @@
-
 import CustomHeader from '@/app/components/CustomHeader'
 import Colors from '@/constants/Colors'
 import { FontAwesome } from '@expo/vector-icons'

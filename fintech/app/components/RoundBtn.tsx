@@ -6,15 +6,16 @@ import Colors from '@/constants/Colors';
 type RoundBtnProps = {
   title: string;
   onPress?: () => void;
+  onLongPress?: () => void;
   icon: typeof Ionicons.defaultProps;
 }
 
 
 
 
-const RoundBtn = ({icon, title, onPress}: RoundBtnProps) => {
+const RoundBtn = ({icon, title, onPress, onLongPress}: RoundBtnProps) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity style={styles.container} onPress={onPress} onLongPress={onLongPress}>
         <View style={styles.circle}>
             <Ionicons name={icon} size={30} color={Colors.dark} />
 

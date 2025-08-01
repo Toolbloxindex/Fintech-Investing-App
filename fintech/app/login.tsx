@@ -40,10 +40,22 @@ const Page = () => {
          if(isClerkAPIResponseError(err)) {
                 if (err.errors[0].code === 'form_identifier_not_found') {
                   Alert.alert('Error', err.errors[0].message)
-              }
+                } else {
+                  // Show all Clerk API errors
+                  Alert.alert('Error', err.errors[0].message)
+                }
+         } else {
+           // Show generic error message for non-Clerk errors
+           Alert.alert('Error', (err as any)?.message || 'Unknown error');
+         }
+         // Log error details for debugging
+         console.log('SignIn error:', err);
+         if (err && typeof err === 'object') {
+           console.log('Error keys:', Object.keys(err));
+           console.log('Error JSON:', JSON.stringify(err, null, 2));
+         }
       }
     }
-  }
   }
 
 

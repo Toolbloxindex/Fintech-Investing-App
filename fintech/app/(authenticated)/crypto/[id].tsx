@@ -1,14 +1,20 @@
 import { View, Text, SectionList, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { defaultStyles } from '@/constants/Styles';
 import Colors from '@/constants/Colors';
 import { ScrollView } from 'react-native-gesture-handler';
-import { CartesianChart, Line, Area } from "victory-native";
+import { CartesianChart, Line, Area, useChartPressState } from "victory-native";
 import { Circle, useFont, LinearGradient, vec } from '@shopify/react-native-skia';
 import { format } from 'date-fns';
+import { SharedValue } from 'react-native-reanimated/lib/typescript/Animated';
+
+function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
+  return <Circle cx={x} cy={y} r={8} color={Colors.primary} />;
+}
 
 // Define types for fetched data
 interface CryptoInfo {
@@ -28,7 +34,14 @@ const categories = ['Overview', 'News', 'Orders', 'Transactions'];
 const CryptoDetail = () => {
   const { id } = useLocalSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
-  const font = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), 12);
+  const font = useFont(require('@/assets/fonts/Inter-VariableFont_opsz,wght.ttf'), 11);
+   const { state, isActive } =
+    useChartPressState({x: 0, y: {price: 0}});
+
+  useEffect(() => {
+    console.log(isActive)
+    if (isActive) {Haptics.selectionAsync()};
+  }, [isActive]);
 
   // Fetch crypto info with type annotation
   const { data } = useQuery<CryptoInfo>({
@@ -58,7 +71,7 @@ const CryptoDetail = () => {
       });
       Animated.timing(progress, {
         toValue: 1,
-        duration: 1000,
+        duration: 500,
         useNativeDriver: false,
       }).start(() => {
         progress.removeListener(listener);
@@ -131,12 +144,15 @@ const CryptoDetail = () => {
         )}
         renderItem={({ item }) => (
           <>
-            <View style={[defaultStyles.block, { height: 500 }]}>
+            <View style={[defaultStyles.block, { height: 300 }]}>
               {tickers && tickers.length > 0 ? (
                 <CartesianChart
+                  chartPressState={state}
                   data={tickers} // Full dataset for stable axes
-                  xAxis={{ font, tickCount: 4, formatXLabel: (ms) => format(new Date(ms), 'MM/yy') }}
-                  yAxis={[{ font, tickCount: 5, formatYLabel: (v) => `${v} €` }]}
+                  xAxis={{ font, tickCount: 4, formatXLabel: (ms) => format(new Date(ms), 'MM/yy'),
+                    lineWidth: 0
+                   }}
+                  yAxis={[{ font, lineWidth: 0.2, tickCount: 5, formatYLabel: (v) => `${v}` },]}
                   xKey="timestamp"
                   yKeys={["price"]}
                 >
@@ -148,10 +164,11 @@ const CryptoDetail = () => {
                           <LinearGradient
                             start={vec(0, 0)}
                             end={vec(0, chartBounds.bottom)}
-                            colors={[Colors.primary + '40', Colors.primary + '10']}
+                            colors={[Colors.primary + '70', Colors.primary + '10']}
                           />
                         </Area>
                         <Line points={displayPoints} color={Colors.primary} strokeWidth={3} />
+                        {isActive && <ToolTip x={state.x.position} y={state.y.price.position} />}
                       </>
                     );
                   }}
