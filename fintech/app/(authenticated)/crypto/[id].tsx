@@ -13,7 +13,6 @@ const categories = ['Overview', 'News', 'Orders', 'Transactions']
 
 const CryptoDetail = () => {
   const { id }  = useLocalSearchParams()
-  const headerHeight = useHeaderHeight();
   const [activeIndex, setActiveIndex] = useState(0);
 
 
@@ -33,10 +32,16 @@ const CryptoDetail = () => {
   return (
     <>
       <Stack.Screen
-        options={{title: data?.name}}
+        options={{
+          title: data?.name,
+          headerStyle: {
+            backgroundColor: Colors.background,
+          },
+          headerShadowVisible: false,
+        }}
       />
       <SectionList
-        style={{marginTop: headerHeight, backgroundColor: Colors.background}}
+        style={{backgroundColor: Colors.background}}
         keyExtractor={(item) => item.title}
         contentInsetAdjustmentBehavior='automatic'
         sections={[{ data: [{ title: 'Chart' }] }]}
@@ -49,7 +54,6 @@ const CryptoDetail = () => {
             backgroundColor: Colors.background,
             borderBottomColor:Colors.lightGray,
             borderBottomWidth: StyleSheet.hairlineWidth,
-
           }}>
             {categories.map((item, index) => (
               <TouchableOpacity key={index} style={ activeIndex === index? styles.categoriesBtnActive : styles.categoriesBtn}
