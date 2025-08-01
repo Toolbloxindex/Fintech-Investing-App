@@ -1,50 +1,80 @@
-import { View, Text, SectionList, StyleSheet, Image, TouchableOpacity } from 'react-native'
-import React, { useState } from 'react'
-import { Ionicons } from '@expo/vector-icons'
-import { Stack, useLocalSearchParams } from 'expo-router'
-import { Header, useHeaderHeight } from '@react-navigation/elements'
-import { useQuery } from '@tanstack/react-query'
-import { defaultStyles } from '@/constants/Styles'
-import Colors from '@/constants/Colors'
-import { ScrollView } from 'react-native-gesture-handler'
+import { View, Text, SectionList, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { defaultStyles } from '@/constants/Styles';
+import Colors from '@/constants/Colors';
+import { ScrollView } from 'react-native-gesture-handler';
 import { CartesianChart, Line, Area } from "victory-native";
-import { Ticker } from '@/interfaces/crypto'
 import { Circle, useFont, LinearGradient, vec } from '@shopify/react-native-skia';
-import { format } from 'date-fns'
+import { format } from 'date-fns';
 
+// Define types for fetched data
+interface CryptoInfo {
+  name: string;
+  symbol: string;
+  logo: string;
+  // Add other properties as needed based on your API response
+}
 
-const categories = ['Overview', 'News', 'Orders', 'Transactions']
+type Ticker = {
+  timestamp: number;
+  price: number;
+};
+
+const categories = ['Overview', 'News', 'Orders', 'Transactions'];
 
 const CryptoDetail = () => {
-  const { id }  = useLocalSearchParams()
+  const { id } = useLocalSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
-  const font = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), 12)
+  const font = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), 12);
 
-  const { data } = useQuery({
+  // Fetch crypto info with type annotation
+  const { data } = useQuery<CryptoInfo>({
     queryKey: ['info', id],
     queryFn: async () => {
-      const info = await fetch(`/api/info?ids=${id}`)
-        .then((res) => res.json())
-      //const logo = info?.[+id].logo
-      return info[+id]
+      const info = await fetch(`/api/info?ids=${id}`).then((res) => res.json());
+      return info[+id];
     },
-    enabled: !!id // Only run this query if id is available
-  })
-  const { data:tickers } = useQuery({
-    queryKey: ['tickers'],
-    queryFn: async (): Promise<any[]> => fetch(`/api/tickers`)
-        .then((res) => res.json())
-  })
+    enabled: !!id,
+  });
 
+  // Fetch tickers with type annotation
+  const { data: tickers } = useQuery<Ticker[]>({
+    queryKey: ['tickers'],
+    queryFn: async () => fetch(`/api/tickers`).then((res) => res.json()),
+  });
+
+  const [displayCount, setDisplayCount] = useState(0);
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (tickers && tickers.length > 0) {
+      progress.setValue(0); // Reset progress to 0
+      const listener = progress.addListener(({ value }) => {
+        const count = Math.min(Math.max(Math.ceil(value * tickers.length), 1), tickers.length);
+        setDisplayCount(count);
+      });
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: false,
+      }).start(() => {
+        progress.removeListener(listener);
+      });
+      return () => {
+        progress.removeListener(listener);
+      };
+    }
+  }, [tickers]);
 
   return (
     <>
       <Stack.Screen
         options={{
           title: data?.name,
-          headerStyle: {
-            backgroundColor: Colors.background,
-          },
+          headerStyle: { backgroundColor: Colors.background },
           headerShadowVisible: false,
         }}
       />
@@ -71,20 +101,10 @@ const CryptoDetail = () => {
             {categories.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={
-                  activeIndex === index
-                    ? styles.categoriesBtnActive
-                    : styles.categoriesBtn
-                }
+                style={activeIndex === index ? styles.categoriesBtnActive : styles.categoriesBtn}
                 onPress={() => setActiveIndex(index)}
               >
-                <Text
-                  style={
-                    activeIndex === index
-                      ? styles.categoryTextActive
-                      : styles.categoryText
-                  }
-                >
+                <Text style={activeIndex === index ? styles.categoryTextActive : styles.categoryText}>
                   {item}
                 </Text>
               </TouchableOpacity>
@@ -93,99 +113,48 @@ const CryptoDetail = () => {
         )}
         ListHeaderComponent={() => (
           <>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginHorizontal: 16,
-              }}
-            >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginHorizontal: 16 }}>
               <Text style={styles.subtitle}>{data?.symbol}</Text>
-              <Image
-                source={{ uri: data?.logo }}
-                style={{ width: 60, height: 60 }}
-              />
+              <Image source={{ uri: data?.logo }} style={{ width: 60, height: 60 }} />
             </View>
-
             <View style={{ flexDirection: "row", gap: 10, margin: 12 }}>
-              <TouchableOpacity
-                style={[
-                  defaultStyles.pillButtonSmall,
-                  {
-                    backgroundColor: Colors.primary,
-                    flexDirection: "row",
-                    gap: 16,
-                  },
-                ]}
-              >
+              <TouchableOpacity style={[defaultStyles.pillButtonSmall, { backgroundColor: Colors.primary, flexDirection: "row", gap: 16 }]}>
                 <Ionicons name="add" size={24} color={"#fff"} />
-                <Text style={[defaultStyles.buttonText, { color: "#fff" }]}>
-                  Buy
-                </Text>
+                <Text style={[defaultStyles.buttonText, { color: "#fff" }]}>Buy</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  defaultStyles.pillButtonSmall,
-                  {
-                    backgroundColor: Colors.primaryMuted,
-                    flexDirection: "row",
-                    gap: 16,
-                  },
-                ]}
-              >
+              <TouchableOpacity style={[defaultStyles.pillButtonSmall, { backgroundColor: Colors.primaryMuted, flexDirection: "row", gap: 16 }]}>
                 <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                <Text
-                  style={[defaultStyles.buttonText, { color: Colors.primary }]}
-                >
-                  Receive
-                </Text>
+                <Text style={[defaultStyles.buttonText, { color: Colors.primary }]}>Receive</Text>
               </TouchableOpacity>
             </View>
           </>
         )}
         renderItem={({ item }) => (
-          //TODO: CHART
           <>
             <View style={[defaultStyles.block, { height: 500 }]}>
               {tickers && tickers.length > 0 ? (
-                <CartesianChart data={tickers} 
-                axisOptions={{
-                  font,
-                  labelColor: Colors.gray,
-                }}
-                xAxis={{
-                  font,
-                  tickCount: 4,
-                  formatXLabel: (ms) => format(new Date (ms), 'MM/yy'),
-                }}
-                yAxis={[{
-                  font,
-                  tickCount: 5, 
-                  formatYLabel: (v) => `${v} €`,
-                }]}
-                xKey="timestamp" yKeys={["price"]}>
-                  {({ points, chartBounds }) => (
-                    <>
-                      <Area 
-                        points={points.price} 
-                        y0={chartBounds.bottom}
-                        animate={{ type: "timing", duration:  500}}
-                      >
-                        <LinearGradient
-                          start={vec(0, 0)}
-                          end={vec(0, chartBounds.bottom)}
-                          colors={[Colors.primary + '40', Colors.primary + '10']}
-                        />
-                      </Area>
-                      <Line 
-                        points={points.price} 
-                        color={Colors.primary} 
-                        strokeWidth={3}
-                        animate={{ type: "timing", duration: 300 }}
-                      />
-                    </>
-                  )}
+                <CartesianChart
+                  data={tickers} // Full dataset for stable axes
+                  xAxis={{ font, tickCount: 4, formatXLabel: (ms) => format(new Date(ms), 'MM/yy') }}
+                  yAxis={[{ font, tickCount: 5, formatYLabel: (v) => `${v} €` }]}
+                  xKey="timestamp"
+                  yKeys={["price"]}
+                >
+                  {({ points, chartBounds }) => {
+                    const displayPoints = points.price.slice(0, displayCount);
+                    return (
+                      <>
+                        <Area points={displayPoints} y0={chartBounds.bottom}>
+                          <LinearGradient
+                            start={vec(0, 0)}
+                            end={vec(0, chartBounds.bottom)}
+                            colors={[Colors.primary + '40', Colors.primary + '10']}
+                          />
+                        </Area>
+                        <Line points={displayPoints} color={Colors.primary} strokeWidth={3} />
+                      </>
+                    );
+                  }}
                 </CartesianChart>
               ) : (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -210,8 +179,7 @@ const CryptoDetail = () => {
       />
     </>
   );
-}
-
+};
 
 const styles = StyleSheet.create({
   subtitle: {
@@ -238,12 +206,11 @@ const styles = StyleSheet.create({
   categoriesBtnActive: {
     padding: 10,
     paddingHorizontal: 14,
-
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
     borderRadius: 20,
   },
-})
+});
 
-export default CryptoDetail
+export default CryptoDetail;
