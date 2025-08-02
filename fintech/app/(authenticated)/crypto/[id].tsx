@@ -78,6 +78,7 @@ const CryptoDetail = () => {
   const [lastTimestamp, setLastTimestamp] = useState<number>(0);
   const [lastPriceUpdateTime, setLastPriceUpdateTime] = useState<number>(0);
   const [isScrollingFast, setIsScrollingFast] = useState(false);
+  const [isChangingInterval, setIsChangingInterval] = useState(false); // Add this line
 
   const font = useFont(require('@/assets/fonts/Inter-VariableFont_opsz,wght.ttf'), 10);
   const { state, isActive } = useChartPressState({ x: 0, y: { price: 0 } });
@@ -93,7 +94,17 @@ const CryptoDetail = () => {
   // Function to update price and date
   const updatePriceAndDate = (price: number, timestamp: number) => {
     setCurrentPrice(price);
-    setCurrentDate(new Date(timestamp).toLocaleDateString());
+    
+    // Format date based on selected interval when chart is active
+    let formattedDate = '';
+    if (selectedInterval === 'day') {
+      // For day interval, show hours and minutes
+      formattedDate = format(new Date(timestamp), 'HH:mm');
+    } else {
+      // For other intervals, show the full date
+      formattedDate = new Date(timestamp).toLocaleDateString();
+    }
+    setCurrentDate(formattedDate);
     
     if (timestamp !== lastTimestamp && lastTimestamp !== 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -157,6 +168,7 @@ const CryptoDetail = () => {
       case 'year':
         // Free tier: daily data for last 365 days (1 year limit)
         start.setDate(end.getDate() - 365);
+        start.setMinutes(start.getMinutes() + 2); // Add 2-minute buffer to stay within allowed window
         return {
           start: start.toISOString().split('T')[0],
           end: end.toISOString().split('T')[0],
@@ -246,21 +258,36 @@ const CryptoDetail = () => {
   const [displayCount, setDisplayCount] = useState(0);
   const progress = useRef(new Animated.Value(0)).current;
 
+  // Modified useEffect for animation
   useEffect(() => {
     if (filteredTickers && filteredTickers.length > 0) {
+      // Reset progress and start fresh animation
       progress.setValue(0);
+      setDisplayCount(0); // Ensure we start from 0
+      
       const listener = progress.addListener(({ value }) => {
         const count = Math.min(Math.max(Math.ceil(value * filteredTickers.length), 1), filteredTickers.length);
         setDisplayCount(count);
       });
       
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: false,
-      }).start(() => {
-        progress.removeListener(listener);
-      });
+      // Small delay to ensure state has updated before starting animation
+      const startAnimation = () => {
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: false,
+        }).start(() => {
+          progress.removeListener(listener);
+          setIsChangingInterval(false); // Reset the changing flag
+        });
+      };
+
+      // Use setTimeout to ensure the reset happens before animation starts
+      if (isChangingInterval) {
+        setTimeout(startAnimation, 50);
+      } else {
+        startAnimation();
+      }
       
       return () => {
         progress.removeListener(listener);
@@ -268,10 +295,14 @@ const CryptoDetail = () => {
     }
   }, [filteredTickers, progress]);
 
-  // Handle interval selection
+  // Modified interval selection handler
   const handleIntervalSelect = (interval: TimeInterval) => {
-    setSelectedInterval(interval);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (interval !== selectedInterval) {
+      setIsChangingInterval(true);
+      setDisplayCount(0); // Reset display count immediately
+      setSelectedInterval(interval);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
 
   // Get the format string based on selected interval
@@ -409,7 +440,7 @@ const CryptoDetail = () => {
                     padding={{ bottom: 6, left: 12 }}
                     xAxis={{
                       font, 
-                      tickCount: 4, 
+                      tickCount: 5, 
                       formatXLabel: (ms: number) => format(new Date(ms), getDateFormat(selectedInterval)),
                       lineWidth: 0
                     }}
