@@ -72,7 +72,7 @@ const timeIntervals: { key: TimeInterval; label: string }[] = [
 const CryptoDetail = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('all');
+  const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('day');
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
   const [lastTimestamp, setLastTimestamp] = useState<number>(0);
@@ -437,7 +437,7 @@ const CryptoDetail = () => {
                 <CartesianChart
                     chartPressState={state}
                     data={filteredTickers}
-                    padding={{ bottom: 6, left: 12 }}
+                    padding={{ bottom: 6 }}
                     xAxis={{
                       font, 
                       tickCount: 5, 
@@ -446,6 +446,7 @@ const CryptoDetail = () => {
                     }}
                     yAxis={[{
                       lineWidth: 0
+            
                     }]}
                     xKey="timestamp"
                     yKeys={["price"]}
