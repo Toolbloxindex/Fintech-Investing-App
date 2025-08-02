@@ -189,7 +189,7 @@ const CryptoDetail = () => {
         )}
         renderItem={({ item }) => (
           <>
-            <View style={[defaultStyles.block, { height: 350 }]}>
+            <View style={[defaultStyles.block, { height: 350}]}>
               <View>
                 {!isActive ? (
                   <>
@@ -233,24 +233,22 @@ const CryptoDetail = () => {
                 )}
               </View>
               {tickers && tickers.length > 0 ? (
+                
                 <CartesianChart
-                  chartPressState={state}
-                  data={tickers}
-                  xAxis={{ 
-                    font, 
-                    tickCount: 4, 
-                    formatXLabel: (ms) => format(new Date(ms), 'MM/yy'),
-                    lineWidth: 0
-                  }}
-                  yAxis={[{ 
-                    font,
-                    axisSide: 'right',
-                    lineWidth: 0.2, 
-                    tickCount: 5, 
-                    formatYLabel: (v) => `${v}` 
-                  }]}
-                  xKey="timestamp"
-                  yKeys={["price"]}
+                    chartPressState={state}
+                    data={tickers}
+                    padding={{ bottom:6, left: 12 }}
+                    xAxis={{
+                      font, 
+                      tickCount: 4, 
+                      formatXLabel: (ms) => format(new Date(ms), 'MM/yy'),
+                      lineWidth: 0
+                    }}
+                    yAxis={[{
+                      lineWidth: 0
+                    }]}
+                    xKey="timestamp"
+                    yKeys={["price"]}
                 >
                   {({ points, chartBounds }) => {
                     // Use all points if animation is disabled, otherwise use animated count
@@ -271,6 +269,7 @@ const CryptoDetail = () => {
                     );
                   }}
                 </CartesianChart>
+               
               ) : (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                   <Text>Loading chart data...</Text>
@@ -290,9 +289,13 @@ const CryptoDetail = () => {
               </Text>
             </View>
           </>
+        
         )}
+        
       />
+      
     </>
+    
   );
 };
 
