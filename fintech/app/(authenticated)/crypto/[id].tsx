@@ -18,8 +18,8 @@ import { runOnJS, useDerivedValue } from 'react-native-reanimated';
 function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
   return (
     <>
-      <Circle cx={x} cy={y} r={7} color={Colors.lightGray} />
-      <Circle cx={x} cy={y} r={5} color={Colors.dark} />
+      <Circle cx={x} cy={y} r={7} color={Colors.dark} />
+      <Circle cx={x} cy={y} r={5} color={Colors.lightGray} />
     </>
   );
 }
@@ -36,13 +36,20 @@ type Ticker = {
   price: number;
 };
 
+type TimeInterval = 'day' | 'month' | 'year' | 'all';
+
 const categories = ['Overview', 'News', 'Orders', 'Transactions'];
-
-
+const timeIntervals: { key: TimeInterval; label: string }[] = [
+  { key: 'day', label: 'Day' },
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
+  { key: 'all', label: 'All' },
+];
 
 const CryptoDetail = () => {
   const { id } = useLocalSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('all');
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
   const [lastTimestamp, setLastTimestamp] = useState<number>(0);
@@ -52,10 +59,16 @@ const CryptoDetail = () => {
   const font = useFont(require('@/assets/fonts/Inter-VariableFont_opsz,wght.ttf'), 10);
   const { state, isActive } = useChartPressState({x: 0, y: {price: 0}});
 
+  // Get current price from the latest data point
+  const getCurrentPrice = () => {
+    if (tickers && tickers.length > 0) {
+      return tickers[tickers.length - 1].price;
+    }
+    return 0;
+  };
+
   // Function to update price and date
   const updatePriceAndDate = (price: number, timestamp: number) => {
-   
-    
     setCurrentPrice(price);
     setCurrentDate(new Date(timestamp).toLocaleDateString());
     
@@ -95,21 +108,107 @@ const CryptoDetail = () => {
     enabled: !!id,
   });
 
-  // Fetch tickers
-  const { data: tickers } = useQuery<Ticker[]>({
-    queryKey: ['tickers'],
-    queryFn: async () => fetch(`/api/tickers`).then((res) => res.json()),
-    refetchInterval: 10000, // Poll every 10 seconds
+  // Function to get date range and interval for API call (Free tier limitations)
+  const getApiParams = (interval: TimeInterval) => {
+    const end = new Date();
+    const start = new Date();
+    
+    switch (interval) {
+      case 'day':
+        // Get exactly 24 hours from current moment, but add 2-minute buffer to avoid API timing issues
+        start.setHours(end.getHours() - 24);
+        start.setMinutes(start.getMinutes() + 2); // Add 2-minute buffer to stay within allowed window
+        return {
+          start: start.toISOString(),
+          end: end.toISOString(),
+          interval: '1h'
+        };
+      case 'month':
+        // Free tier: daily data for last 30 days
+        start.setDate(end.getDate() - 30);
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+          interval: '1d'
+        };
+      case 'year':
+        // Free tier: daily data for last 365 days (1 year limit)
+        start.setDate(end.getDate() - 365);
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+          interval: '1d'
+        };
+      case 'all':
+        // Free tier: daily data for last 365 days (maximum for free tier)
+        start.setDate(end.getDate() - 365);
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+          interval: '1d'
+        };
+    }
+  };
+
+  // Fetch historical data from CoinPaprika API (Free tier)
+  const { data: tickers, isLoading: tickersLoading, error } = useQuery<Ticker[]>({
+    queryKey: ['historical', id, selectedInterval, selectedInterval === 'day' ? Date.now() : 'static'],
+    queryFn: async () => {
+      if (!id) return [];
+      
+      const apiParams = getApiParams(selectedInterval);
+      
+      const url = `https://api.coinpaprika.com/v1/tickers/${id}/historical?start=${apiParams.start}&end=${apiParams.end}&limit=1000&interval=${apiParams.interval}`;
+      
+      console.log('Fetching from URL:', url);
+      console.log('Interval:', selectedInterval, 'API interval:', apiParams.interval);
+      console.log('Time range:', apiParams.start, 'to', apiParams.end);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error('API Error:', response.status, response.statusText);
+        if (response.status === 402) {
+          throw new Error('Free tier limit exceeded. Hourly data may not be available for this time range.');
+        }
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('API Response:', data.length, 'data points');
+      
+      if (!data || data.length === 0) {
+        console.warn('No data returned from API');
+        return [];
+      }
+      
+      // Transform the API response to match our Ticker type
+      const transformedData = data.map((item: any) => ({
+        timestamp: new Date(item.timestamp).getTime(),
+        price: parseFloat(item.price) || 0
+      })).filter((item: Ticker) => item.price > 0) // Filter out invalid prices
+        .sort((a: Ticker, b: Ticker) => a.timestamp - b.timestamp);
+      
+      console.log('Transformed data:', transformedData.length, 'valid points');
+      return transformedData;
+    },
+    enabled: !!id,
+    staleTime: selectedInterval === 'day' ? 0 : 600000, // Always fresh for day view, 10 min for others
+    refetchInterval: selectedInterval === 'day' ? 60000 : false, // Refetch every minute for day view
+    retry: 1, // Reduce retries for free tier
   });
+
+  // Use tickers directly since they're already filtered by the API call
+  const filteredTickers = tickers || [];
 
   const [displayCount, setDisplayCount] = useState(0);
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (tickers && tickers.length > 0) {
+    if (filteredTickers && filteredTickers.length > 0) {
       progress.setValue(0);
       const listener = progress.addListener(({ value }) => {
-        const count = Math.min(Math.max(Math.ceil(value * tickers.length), 1), tickers.length);
+        const count = Math.min(Math.max(Math.ceil(value * filteredTickers.length), 1), filteredTickers.length);
         setDisplayCount(count);
       });
       
@@ -125,7 +224,28 @@ const CryptoDetail = () => {
         progress.removeListener(listener);
       };
     }
-  }, [tickers]);
+  }, [filteredTickers]);
+
+  // Handle interval selection
+  const handleIntervalSelect = (interval: TimeInterval) => {
+    setSelectedInterval(interval);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  // Get the format string based on selected interval
+  const getDateFormat = (interval: TimeInterval) => {
+    switch (interval) {
+      case 'day':
+        return 'HH:mm'; // Hourly format for 24-hour view
+      case 'month':
+        return 'dd/MM';
+      case 'year':
+        return 'MMM';
+      case 'all':
+      default:
+        return 'MMM yy';
+    }
+  };
 
   return (
     <>
@@ -189,59 +309,83 @@ const CryptoDetail = () => {
         )}
         renderItem={({ item }) => (
           <>
-            <View style={[defaultStyles.block, { height: 350}]}>
+            <View style={{ height: 500, padding: 16 }}>
               <View>
                 {!isActive ? (
                   <>
-                    {tickers && tickers.length > 0 ? (
+                    {!tickersLoading && tickers && tickers.length > 0 ? (
                     <>
-                      <View style={{ alignItems: 'flex-start'
-                       }}>
-                        
+                      <View style={{ alignItems: 'flex-start' }}>
                         <AnimatedRollingNumber 
                         textStyle={{ fontSize: 30, fontWeight: 'bold', color: Colors.dark }}
                         spinningAnimationConfig={{ duration: 100, easing: Easing.bounce }}
-                        value={Number(tickers[tickers.length - 1].price.toFixed(2)) ?? 0}
-                        
-                      />
+                        value={Number(getCurrentPrice().toFixed(2))}
+                        />
                       </View>
-                        
-                      
-                        <Text style={{ fontSize: 18, color: Colors.gray }}>
-                          Today
-                        </Text>
-                      </>
+                      <Text style={{ fontSize: 18, color: Colors.gray }}>
+                        {selectedInterval === 'day' ? 'Last 24 hours' : 
+                         selectedInterval === 'month' ? 'Last 30 days' : 
+                         selectedInterval === 'year' ? 'Last year' : 
+                         'Last year (Free tier limit)'}
+                      </Text>
+                    </>
                     ) : (
                       <View>
-                        <Text style={{fontSize: 30, fontWeight: 'bold', color: Colors.dark}}>Loading...</Text>
+                        <Text style={{fontSize: 30, fontWeight: 'bold', color: Colors.dark}}>
+                          {tickersLoading ? 'Loading...' : error ? 'Error' : 'No data'}
+                        </Text>
+                        {error && (
+                          <Text style={{fontSize: 14, color: Colors.gray, marginTop: 4}}>
+                            {error.message.includes('402') ? 'Hourly data not available on free tier' : 'Try a different time period'}
+                          </Text>
+                        )}
                       </View>
                     )}
                   </>
                 ) : (
                   <View style={{ alignItems: 'flex-start' }}>
-                    
-                      <AnimatedRollingNumber 
-                        textStyle={{ fontSize: 30, fontWeight: 'bold', color: Colors.dark }}
-                        spinningAnimationConfig={{ duration: 200, easing: Easing.bounce }}
-                        value={currentPrice ?? 0}
-                      />
-                  
+                    <AnimatedRollingNumber 
+                      textStyle={{ fontSize: 30, fontWeight: 'bold', color: Colors.dark }}
+                      spinningAnimationConfig={{ duration: 200, easing: Easing.bounce }}
+                      value={currentPrice ?? 0}
+                    />
                     <Text style={{ fontSize: 18, color: Colors.gray }}>
                       {currentDate}
                     </Text>
                   </View>
                 )}
               </View>
-              {tickers && tickers.length > 0 ? (
-                
+
+              {/* Time Interval Selector */}
+              <View style={styles.intervalContainer}>
+                {timeIntervals.map((interval) => (
+                  <TouchableOpacity
+                    key={interval.key}
+                    style={[
+                      styles.intervalBtn,
+                      selectedInterval === interval.key && styles.intervalBtnActive
+                    ]}
+                    onPress={() => handleIntervalSelect(interval.key)}
+                  >
+                    <Text style={[
+                      styles.intervalText,
+                      selectedInterval === interval.key && styles.intervalTextActive
+                    ]}>
+                      {interval.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {!tickersLoading && filteredTickers && filteredTickers.length > 0 ? (
                 <CartesianChart
                     chartPressState={state}
-                    data={tickers}
-                    padding={{ bottom:6, left: 12 }}
+                    data={filteredTickers}
+                    padding={{ bottom: 6, left: 12 }}
                     xAxis={{
                       font, 
                       tickCount: 4, 
-                      formatXLabel: (ms) => format(new Date(ms), 'MM/yy'),
+                      formatXLabel: (ms) => format(new Date(ms), getDateFormat(selectedInterval)),
                       lineWidth: 0
                     }}
                     yAxis={[{
@@ -252,7 +396,7 @@ const CryptoDetail = () => {
                 >
                   {({ points, chartBounds }) => {
                     // Use all points if animation is disabled, otherwise use animated count
-                    const displayPoints =  points.price.slice(0, displayCount)
+                    const displayPoints = points.price.slice(0, displayCount)
 
                     return (
                       <>
@@ -260,7 +404,7 @@ const CryptoDetail = () => {
                           <LinearGradient
                             start={vec(0, 0)}
                             end={vec(0, chartBounds.bottom)}
-                            colors={[Colors.primary + '10', '#fff']}
+                            colors={[Colors.primary + '10', Colors.background]}
                           />
                         </Area>
                         <Line points={displayPoints} color={Colors.primary} strokeWidth={3} />
@@ -269,10 +413,14 @@ const CryptoDetail = () => {
                     );
                   }}
                 </CartesianChart>
-               
               ) : (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text>Loading chart data...</Text>
+                  <Text>{tickersLoading ? 'Loading chart data...' : error ? 'Failed to load data' : 'No chart data available'}</Text>
+                  {error && (
+                    <Text style={{ color: Colors.gray, marginTop: 8, textAlign: 'center' }}>
+                      Try selecting a different time interval
+                    </Text>
+                  )}
                 </View>
               )}
             </View>
@@ -289,13 +437,9 @@ const CryptoDetail = () => {
               </Text>
             </View>
           </>
-        
         )}
-        
       />
-      
     </>
-    
   );
 };
 
@@ -328,6 +472,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#fff',
     borderRadius: 20,
+  },
+  intervalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 16,
+    paddingHorizontal: 8,
+  },
+  intervalBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: Colors.lightGray,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  intervalBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  intervalText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.gray,
+  },
+  intervalTextActive: {
+    color: '#fff',
   },
 });
 
