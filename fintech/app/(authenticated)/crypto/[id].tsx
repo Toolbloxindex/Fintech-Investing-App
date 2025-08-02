@@ -38,6 +38,29 @@ type Ticker = {
 
 type TimeInterval = 'day' | 'month' | 'year' | 'all';
 
+// Define chart press state type to match victory-native
+interface ChartPressState {
+  x: {
+    value: SharedValue<number>;
+    position: SharedValue<number>;
+  };
+  y: {
+    price: {
+      value: SharedValue<number>;
+      position: SharedValue<number>;
+    };
+  };
+}
+
+// Define section data type for SectionList
+interface SectionData {
+  title: string;
+}
+
+interface Section {
+  data: SectionData[];
+}
+
 const categories = ['Overview', 'News', 'Orders', 'Transactions'];
 const timeIntervals: { key: TimeInterval; label: string }[] = [
   { key: 'day', label: 'Day' },
@@ -47,7 +70,7 @@ const timeIntervals: { key: TimeInterval; label: string }[] = [
 ];
 
 const CryptoDetail = () => {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('all');
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -57,10 +80,10 @@ const CryptoDetail = () => {
   const [isScrollingFast, setIsScrollingFast] = useState(false);
 
   const font = useFont(require('@/assets/fonts/Inter-VariableFont_opsz,wght.ttf'), 10);
-  const { state, isActive } = useChartPressState({x: 0, y: {price: 0}});
+  const { state, isActive } = useChartPressState({ x: 0, y: { price: 0 } });
 
   // Get current price from the latest data point
-  const getCurrentPrice = () => {
+  const getCurrentPrice = (): number => {
     if (tickers && tickers.length > 0) {
       return tickers[tickers.length - 1].price;
     }
@@ -80,7 +103,7 @@ const CryptoDetail = () => {
 
   // Use useDerivedValue to track changes in chart values
   useDerivedValue(() => {
-    if (isActive) {
+    if (isActive && state?.y?.price?.value?.value !== undefined && state?.x?.value?.value !== undefined) {
       const price = state.y.price.value.value;
       const timestamp = state.x.value.value;
       runOnJS(updatePriceAndDate)(price, timestamp);
@@ -89,7 +112,7 @@ const CryptoDetail = () => {
   });
 
   useEffect(() => {
-    console.log(isActive)
+    console.log(isActive);
     if (isActive) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     } else {
@@ -101,9 +124,9 @@ const CryptoDetail = () => {
   // Fetch crypto info
   const { data } = useQuery<CryptoInfo>({
     queryKey: ['info', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<CryptoInfo> => {
       const info = await fetch(`/api/info?ids=${id}`).then((res) => res.json());
-      return info[+id];
+      return info[Number(id)];
     },
     enabled: !!id,
   });
@@ -150,15 +173,34 @@ const CryptoDetail = () => {
     }
   };
 
+  // Helper function to get a stable cache key for the current hour (for day view)
+  const getCurrentHourKey = (): string => {
+    const now = new Date();
+    return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
+  };
+
   // Fetch historical data from CoinPaprika API (Free tier)
   const { data: tickers, isLoading: tickersLoading, error } = useQuery<Ticker[]>({
-    queryKey: ['historical', id, selectedInterval, selectedInterval === 'day' ? Date.now() : 'static'],
-    queryFn: async () => {
+    queryKey: [
+      'historical', 
+      id, 
+      selectedInterval, 
+      selectedInterval === 'day' ? getCurrentHourKey() : 'static'
+    ],
+    queryFn: async (): Promise<Ticker[]> => {
       if (!id) return [];
       
       const apiParams = getApiParams(selectedInterval);
-      
-      const url = `https://api.coinpaprika.com/v1/tickers/${id}/historical?start=${apiParams.start}&end=${apiParams.end}&limit=1000&interval=${apiParams.interval}`;
+      const { getDummyData } = await import('@/app/api/dummyData');
+      const dummyTickers = getDummyData(selectedInterval);
+      return dummyTickers
+  .map((item: any) => ({
+    timestamp: new Date(item.timestamp).getTime(),
+    price: parseFloat(item.price) || 0,
+  }))
+  .filter((item: Ticker) => item.price > 0)
+  .sort((a: Ticker, b: Ticker) => a.timestamp - b.timestamp);
+     /*  const url = `https://api.coinpaprika.com/v1/tickers/${id}/historical?start=${apiParams.start}&end=${apiParams.end}&limit=1000&interval=${apiParams.interval}`;
       
       console.log('Fetching from URL:', url);
       console.log('Interval:', selectedInterval, 'API interval:', apiParams.interval);
@@ -190,11 +232,11 @@ const CryptoDetail = () => {
         .sort((a: Ticker, b: Ticker) => a.timestamp - b.timestamp);
       
       console.log('Transformed data:', transformedData.length, 'valid points');
-      return transformedData;
+      return transformedData; */
     },
     enabled: !!id,
-    staleTime: selectedInterval === 'day' ? 0 : 600000, // Always fresh for day view, 10 min for others
-    refetchInterval: selectedInterval === 'day' ? 60000 : false, // Refetch every minute for day view
+    staleTime: selectedInterval === 'day' ? 5 * 60 * 1000 : 10 * 60 * 1000, // 5 min for day view, 10 min for others
+    refetchInterval: selectedInterval === 'day' ? 5 * 60 * 1000 : false, // Refetch every 5 minutes for day view
     retry: 1, // Reduce retries for free tier
   });
 
@@ -224,7 +266,7 @@ const CryptoDetail = () => {
         progress.removeListener(listener);
       };
     }
-  }, [filteredTickers]);
+  }, [filteredTickers, progress]);
 
   // Handle interval selection
   const handleIntervalSelect = (interval: TimeInterval) => {
@@ -233,7 +275,7 @@ const CryptoDetail = () => {
   };
 
   // Get the format string based on selected interval
-  const getDateFormat = (interval: TimeInterval) => {
+  const getDateFormat = (interval: TimeInterval): string => {
     switch (interval) {
       case 'day':
         return 'HH:mm'; // Hourly format for 24-hour view
@@ -247,6 +289,8 @@ const CryptoDetail = () => {
     }
   };
 
+  const sections: Section[] = [{ data: [{ title: "Chart" }] }];
+
   return (
     <>
       <Stack.Screen
@@ -256,11 +300,11 @@ const CryptoDetail = () => {
           headerShadowVisible: false,
         }}
       />
-      <SectionList
+      <SectionList<SectionData, Section>
         style={{ backgroundColor: Colors.background }}
         keyExtractor={(item) => item.title}
         contentInsetAdjustmentBehavior="automatic"
-        sections={[{ data: [{ title: "Chart" }] }]}
+        sections={sections}
         renderSectionHeader={() => (
           <ScrollView
             horizontal={true}
@@ -336,7 +380,7 @@ const CryptoDetail = () => {
                         </Text>
                         {error && (
                           <Text style={{fontSize: 14, color: Colors.gray, marginTop: 4}}>
-                            {error.message.includes('402') ? 'Hourly data not available on free tier' : 'Try a different time period'}
+                            {(error as Error).message.includes('402') ? 'Hourly data not available on free tier' : 'Try a different time period'}
                           </Text>
                         )}
                       </View>
@@ -356,7 +400,58 @@ const CryptoDetail = () => {
                 )}
               </View>
 
-              {/* Time Interval Selector */}
+              
+
+              {!tickersLoading && filteredTickers && filteredTickers.length > 0 ? (
+                <CartesianChart
+                    chartPressState={state}
+                    data={filteredTickers}
+                    padding={{ bottom: 6, left: 12 }}
+                    xAxis={{
+                      font, 
+                      tickCount: 4, 
+                      formatXLabel: (ms: number) => format(new Date(ms), getDateFormat(selectedInterval)),
+                      lineWidth: 0
+                    }}
+                    yAxis={[{
+                      lineWidth: 0
+                    }]}
+                    xKey="timestamp"
+                    yKeys={["price"]}
+                >
+                  {({ points, chartBounds }) => {
+                    // Use all points if animation is disabled, otherwise use animated count
+                    const displayPoints = points.price.slice(0, displayCount);
+
+                    return (
+                      <>
+                        <Area points={displayPoints} y0={chartBounds.bottom}>
+                          <LinearGradient
+                            start={vec(0, 0)}
+                            end={vec(0, chartBounds.bottom)}
+                            colors={[Colors.primary + '10', Colors.background]}
+                          />
+                        </Area>
+                        <Line points={displayPoints} color={Colors.primary} strokeWidth={3} />
+                        {isActive && state?.x?.position && state?.y?.price?.position && (
+                          <ToolTip x={state.x.position} y={state.y.price.position} />
+                        )}
+                      </>
+                    );
+                  }}
+                </CartesianChart>
+              ) : (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                  <Text>{tickersLoading ? 'Loading chart data...' : error ? 'Failed to load data' : 'No chart data available'}</Text>
+                  {error && (
+                    <Text style={{ color: Colors.gray, marginTop: 8, textAlign: 'center' }}>
+                      Try selecting a different time interval
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+            {/* Time Interval Selector */}
               <View style={styles.intervalContainer}>
                 {timeIntervals.map((interval) => (
                   <TouchableOpacity
@@ -376,54 +471,6 @@ const CryptoDetail = () => {
                   </TouchableOpacity>
                 ))}
               </View>
-
-              {!tickersLoading && filteredTickers && filteredTickers.length > 0 ? (
-                <CartesianChart
-                    chartPressState={state}
-                    data={filteredTickers}
-                    padding={{ bottom: 6, left: 12 }}
-                    xAxis={{
-                      font, 
-                      tickCount: 4, 
-                      formatXLabel: (ms) => format(new Date(ms), getDateFormat(selectedInterval)),
-                      lineWidth: 0
-                    }}
-                    yAxis={[{
-                      lineWidth: 0
-                    }]}
-                    xKey="timestamp"
-                    yKeys={["price"]}
-                >
-                  {({ points, chartBounds }) => {
-                    // Use all points if animation is disabled, otherwise use animated count
-                    const displayPoints = points.price.slice(0, displayCount)
-
-                    return (
-                      <>
-                        <Area points={displayPoints} y0={chartBounds.bottom}>
-                          <LinearGradient
-                            start={vec(0, 0)}
-                            end={vec(0, chartBounds.bottom)}
-                            colors={[Colors.primary + '10', Colors.background]}
-                          />
-                        </Area>
-                        <Line points={displayPoints} color={Colors.primary} strokeWidth={3} />
-                        {isActive && <ToolTip x={state.x.position} y={state.y.price.position} />}
-                      </>
-                    );
-                  }}
-                </CartesianChart>
-              ) : (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text>{tickersLoading ? 'Loading chart data...' : error ? 'Failed to load data' : 'No chart data available'}</Text>
-                  {error && (
-                    <Text style={{ color: Colors.gray, marginTop: 8, textAlign: 'center' }}>
-                      Try selecting a different time interval
-                    </Text>
-                  )}
-                </View>
-              )}
-            </View>
             <View style={[defaultStyles.block, { marginTop: 20 }]}>
               <Text style={styles.subtitle}>Overview</Text>
               <Text style={{ color: Colors.gray }}>
