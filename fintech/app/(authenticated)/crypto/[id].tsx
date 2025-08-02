@@ -393,6 +393,7 @@ const CryptoDetail = () => {
                       <View style={{ alignItems: 'flex-start' }}>
                         <AnimatedRollingNumber 
                         textStyle={{ fontSize: 30, fontWeight: 'bold', color: Colors.dark }}
+                        useGrouping={true}
                         spinningAnimationConfig={{ duration: 100, easing: Easing.bounce }}
                         value={Number(getCurrentPrice().toFixed(2))}
                         />
@@ -421,6 +422,7 @@ const CryptoDetail = () => {
                   <View style={{ alignItems: 'flex-start' }}>
                     <AnimatedRollingNumber 
                       textStyle={{ fontSize: 30, fontWeight: 'bold', color: Colors.dark }}
+                      useGrouping={true}
                       spinningAnimationConfig={{ duration: 200, easing: Easing.bounce }}
                       value={currentPrice ?? 0}
                     />
