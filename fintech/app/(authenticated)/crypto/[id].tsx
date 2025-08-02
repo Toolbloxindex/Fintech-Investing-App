@@ -260,7 +260,7 @@ const CryptoDetail = () => {
                           <LinearGradient
                             start={vec(0, 0)}
                             end={vec(0, chartBounds.bottom)}
-                            colors={[Colors.primary + '70', Colors.primary + '10']}
+                            colors={[Colors.primary + '10', '#fff']}
                           />
                         </Area>
                         <Line points={displayPoints} color={Colors.primary} strokeWidth={3} />
