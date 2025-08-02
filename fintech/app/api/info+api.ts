@@ -1,7 +1,7 @@
 const API_KEY = process.env.CRYPTO_API_KEY;
 
 export async function GET(request: Request) {
-/*   const url = new URL(request.url);
+  const url = new URL(request.url);
   const ids = url.searchParams.get("ids");
 
   // Require 'ids' parameter for CoinMarketCap API
@@ -28,8 +28,8 @@ export async function GET(request: Request) {
   if (!res.data) {
     return Response.json({ error: "No data found", details: res }, { status: 404 });
   }
-  return Response.json(res.data); */
-  return Response.json(data)
+  return Response.json(res.data);
+ /*  return Response.json(data) */
 }
 
 // Mock data for demonstration purposes
