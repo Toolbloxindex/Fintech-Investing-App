@@ -100,7 +100,7 @@ const InitialLayout = () => {
     if (!appReady) return; // Wait until the app is ready
     const inAuthGroup = segments[0] === '(authenticated)';
     if (isSignedIn && !inAuthGroup) {
-      router.replace('/(authenticated)/(tabs)/crypto');
+      router.replace('/(authenticated)/(modals)/lock'); //DEVELOPMENT ONLY 
     } else if (!isSignedIn && inAuthGroup) {
       router.replace('/');
     }

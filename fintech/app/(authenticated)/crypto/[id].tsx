@@ -14,6 +14,9 @@ import { AnimatedRollingNumber } from "react-native-animated-rolling-numbers";
 import { Easing } from "react-native-reanimated";
 import { SharedValue } from 'react-native-reanimated/lib/typescript/Animated';
 import { runOnJS, useDerivedValue } from 'react-native-reanimated';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { LoadingScreen } from '@/app/(authenticated)/loadingScreen/loadingComponent';
+
 
 function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
   return (
@@ -70,18 +73,24 @@ const timeIntervals: { key: TimeInterval; label: string }[] = [
 ];
 
 const CryptoDetail = () => {
+  const headerHeight = useHeaderHeight();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('day');
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
   const [lastTimestamp, setLastTimestamp] = useState<number>(0);
-  const [lastPriceUpdateTime, setLastPriceUpdateTime] = useState<number>(0);
-  const [isScrollingFast, setIsScrollingFast] = useState(false);
   const [isChangingInterval, setIsChangingInterval] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const font = useFont(require('@/assets/fonts/Inter-VariableFont_opsz,wght.ttf'), 10);
   const { state, isActive } = useChartPressState({ x: 0, y: { price: 0 } });
+
+  // Handle loading completion
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
 
   // Get current price from the latest data point
   const getCurrentPrice = (): number => {
@@ -155,7 +164,7 @@ const CryptoDetail = () => {
       const info = await fetch(`/api/info?ids=${id}`).then((res) => res.json());
       return info[Number(id)];
     },
-    enabled: !!id,
+    enabled: !!id ,
   });
 
   // Function to get date range and interval for API call (Free tier limitations)
@@ -262,7 +271,7 @@ const CryptoDetail = () => {
       console.log('Transformed data:', transformedData.length, 'valid points');
       return transformedData; */
     },
-    enabled: !!id,
+    enabled: !!id && !isLoading, // Only fetch when not loading
     staleTime: selectedInterval === 'day' ? 5 * 60 * 1000 : 10 * 60 * 1000, // 5 min for day view, 10 min for others
     refetchInterval: selectedInterval === 'day' ? 5 * 60 * 1000 : false, // Refetch every 5 minutes for day view
     retry: 1, // Reduce retries for free tier
@@ -338,6 +347,11 @@ const CryptoDetail = () => {
 
   const sections: Section[] = [{ data: [{ title: "Chart" }] }];
 
+  // Show loading screen if still loading
+  if (isLoading) {
+    return <LoadingScreen onComplete={handleLoadingComplete} />;
+  }
+
   return (
     <>
       <Stack.Screen
@@ -349,7 +363,7 @@ const CryptoDetail = () => {
       />
       <SectionList<SectionData, Section>
         stickySectionHeadersEnabled={true} 
-        style={{ backgroundColor: Colors.background }}
+        style={{ backgroundColor: Colors.background, marginTop: headerHeight }}
         keyExtractor={(item) => item.title}
         contentInsetAdjustmentBehavior="automatic"
         sections={sections}
@@ -615,5 +629,4 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
-
 export default CryptoDetail;
