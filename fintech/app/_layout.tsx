@@ -13,6 +13,7 @@ import { useAssets } from 'expo-asset';
 import { Query, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import * as SecureStore from 'expo-secure-store';
+import { UserInactivityProvider } from '@/context/UserInactivity';
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const queryClient = new QueryClient();
@@ -179,6 +180,10 @@ const InitialLayout = () => {
             </View>
           ),
         }}/>
+        <Stack.Screen name='(authenticated)/(modals)/lock' options={{
+          headerShown: false,
+          animation: 'none',
+        }}/>
       </Stack>
       )
 }
@@ -188,10 +193,12 @@ export default function RootLayoutNav () {
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache}>
       <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{flex:1}}>
-        <StatusBar style="dark" />
-        <InitialLayout/>
-      </GestureHandlerRootView>
+        <UserInactivityProvider>
+          <GestureHandlerRootView style={{flex:1}}>
+            <StatusBar style="dark" />
+            <InitialLayout/>
+          </GestureHandlerRootView>
+        </UserInactivityProvider>
       </QueryClientProvider>
   </ClerkProvider>
 
