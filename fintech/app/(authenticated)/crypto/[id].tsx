@@ -78,7 +78,7 @@ const CryptoDetail = () => {
   const [lastTimestamp, setLastTimestamp] = useState<number>(0);
   const [lastPriceUpdateTime, setLastPriceUpdateTime] = useState<number>(0);
   const [isScrollingFast, setIsScrollingFast] = useState(false);
-  const [isChangingInterval, setIsChangingInterval] = useState(false); // Add this line
+  const [isChangingInterval, setIsChangingInterval] = useState(false);
 
   const font = useFont(require('@/assets/fonts/Inter-VariableFont_opsz,wght.ttf'), 10);
   const { state, isActive } = useChartPressState({ x: 0, y: { price: 0 } });
@@ -89,6 +89,22 @@ const CryptoDetail = () => {
       return tickers[tickers.length - 1].price;
     }
     return 0;
+  };
+
+  // Calculate percentage change from first to last data point
+  const getPercentageChange = (): { percentage: number; isPositive: boolean } => {
+    if (!tickers || tickers.length < 2) {
+      return { percentage: 0, isPositive: true };
+    }
+    
+    const firstPrice = tickers[0].price;
+    const lastPrice = tickers[tickers.length - 1].price;
+    const change = ((lastPrice - firstPrice) / firstPrice) * 100;
+    
+    return {
+      percentage: Math.abs(change),
+      isPositive: change >= 0
+    };
   };
 
   // Function to update price and date
@@ -332,6 +348,7 @@ const CryptoDetail = () => {
         }}
       />
       <SectionList<SectionData, Section>
+        stickySectionHeadersEnabled={true} 
         style={{ backgroundColor: Colors.background }}
         keyExtractor={(item) => item.title}
         contentInsetAdjustmentBehavior="automatic"
@@ -390,15 +407,35 @@ const CryptoDetail = () => {
                   <>
                     {!tickersLoading && tickers && tickers.length > 0 ? (
                     <>
-                      <View style={{ alignItems: 'flex-start' }}>
+                      <View style={{ alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', gap: 5}}>
                         <AnimatedRollingNumber 
                         textStyle={{ fontSize: 30, fontWeight: 'bold', color: Colors.dark }}
                         useGrouping={true}
                         spinningAnimationConfig={{ duration: 100, easing: Easing.bounce }}
                         value={Number(getCurrentPrice().toFixed(2))}
                         />
+                        {(() => {
+                          const { percentage, isPositive } = getPercentageChange();
+                          return (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 2 , marginTop: 8}}>
+                              <Ionicons
+                                name={isPositive ? "arrow-up" : "arrow-down"}
+                                size={20}
+                                color={isPositive ? '#119140ff' : '#ef4444'}
+                              />
+                              <Text style={{
+                                fontSize: 20,
+                                fontWeight: '600',
+                                color: isPositive ? '#119140ff' : '#ef4444',
+                                marginLeft: 4
+                              }}>
+                                {percentage.toFixed(2)}%
+                              </Text>
+                            </View>
+                          );
+                        })()}
                       </View>
-                      <Text style={{ fontSize: 18, color: Colors.gray }}>
+                      <Text style={{ fontSize: 18, color: Colors.gray, marginTop: 4 }}>
                         {selectedInterval === 'day' ? 'Last 24 hours' : 
                          selectedInterval === 'month' ? 'Last 30 days' : 
                          selectedInterval === 'year' ? 'Last year' : 
@@ -426,14 +463,12 @@ const CryptoDetail = () => {
                       spinningAnimationConfig={{ duration: 200, easing: Easing.bounce }}
                       value={currentPrice ?? 0}
                     />
-                    <Text style={{ fontSize: 18, color: Colors.gray }}>
+                    <Text style={{ fontSize: 18, color: Colors.gray, marginTop: 4}}>
                       {currentDate}
                     </Text>
                   </View>
                 )}
               </View>
-
-              
 
               {!tickersLoading && filteredTickers && filteredTickers.length > 0 ? (
                 <CartesianChart
