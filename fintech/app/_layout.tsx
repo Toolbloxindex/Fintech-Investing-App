@@ -10,10 +10,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAssets } from 'expo-asset';
-import { Query, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import * as SecureStore from 'expo-secure-store';
 import { UserInactivityProvider } from '@/context/UserInactivity';
+
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const queryClient = new QueryClient();
@@ -35,17 +36,15 @@ const tokenCache = {
     }
   }
 }
+
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const InitialLayout = () => {
@@ -55,21 +54,13 @@ const InitialLayout = () => {
   });
   const [assets] = useAssets([require('../assets/videos/intro.mp4')]);
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [appReady, setAppReady] = useState(false); // Track overall app readiness
+  const [appReady, setAppReady] = useState(false);
+  const [navigationReady, setNavigationReady] = useState(false);
+  
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const segments = useSegments();
 
-  // Debugging logs to track resource states
-  useEffect(() => {
-    console.log('Fonts Loaded:', fontsLoaded);
-    console.log('Fonts Error:', fontsError);
-    console.log('Auth Loaded:', isLoaded);
-    console.log('Assets Loaded:', !!assets);
-    console.log('Video Loaded:', videoLoaded);
-  }, [fontsLoaded, fontsError, isLoaded, assets, videoLoaded]);
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (fontsError) throw fontsError;
   }, [fontsError]);
@@ -81,115 +72,176 @@ const InitialLayout = () => {
   }, [fontsLoaded, assets]);
 
   useEffect(() => {
-    // Check if all resources are loaded
-    if (fontsLoaded && isLoaded && assets && videoLoaded) {
-      console.log('All resources loaded. App is ready.');
-      setAppReady(true); // Mark app as ready
-    }
-  }, [fontsLoaded, isLoaded, assets, videoLoaded]);
-
-  // Mark video as loaded when assets are available
-  useEffect(() => {
     if (assets) {
       setVideoLoaded(true);
     }
   }, [assets]);
 
   useEffect(() => {
-    console.log('isSignedIn:', isSignedIn);
-    if (!appReady) return; // Wait until the app is ready
+    if (fontsLoaded && isLoaded && assets && videoLoaded) {
+      setAppReady(true);
+    }
+  }, [fontsLoaded, isLoaded, assets, videoLoaded]);
+
+  useEffect(() => {
+    if (!appReady) return;
+    
     const inAuthGroup = segments[0] === '(authenticated)';
+    
     if (isSignedIn && !inAuthGroup) {
-      router.replace('/(authenticated)/(modals)/lock'); //DEVELOPMENT ONLY 
+      router.replace('/(authenticated)/(tabs)/home');
     } else if (!isSignedIn && inAuthGroup) {
       router.replace('/');
     }
-  }, [isSignedIn, appReady]);
+    
+    // Set navigation ready after routing logic completes
+    setNavigationReady(true);
+  }, [isSignedIn, appReady, segments]);
 
-  if (!appReady) {
+  // Show loading until both app is ready AND navigation routing is complete
+  if (!appReady || !navigationReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={{ color: 'white', marginTop: 10 }}>Loading...</Text>
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: Colors.background || '#000',
+      }}>
+        {/* Animated Logo/Icon Container */}
+        <View style={{
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: Colors.primary || '#007AFF',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 30,
+          shadowColor: Colors.primary || '#007AFF',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 10,
+        }}>
+          <Ionicons name="wallet" size={50} color="white" />
+        </View>
+
+     
+
+        {/* Loading Text */}
+        <Text style={{ 
+          color: Colors.dark || '#333', 
+          fontSize: 16,
+          fontWeight: '600',
+          letterSpacing: 0.5,
+        }}>
+          Initializing...
+        </Text>
+        
+        {/* Subtle Progress Indicator */}
+        <View style={{
+          width: 200,
+          height: 2,
+          backgroundColor: 'rgba(0,122,255,0.1)',
+          borderRadius: 1,
+          marginTop: 20,
+          overflow: 'hidden',
+        }}>
+          <View style={{
+            width: '60%',
+            height: '100%',
+            backgroundColor: Colors.primary || '#007AFF',
+            borderRadius: 1,
+          }} />
+        </View>
       </View>
     );
   }
-
   return (
-        <Stack>
-        <Stack.Screen name="index" options={{headerShown:false}}/>
-        <Stack.Screen name="signup" options={{
-          title: '',
-          headerBackTitle:'',
-          headerShadowVisible:false,
-          headerStyle: {backgroundColor: Colors.background},
-          headerLeft:()=>(
-            <TouchableOpacity onPress={router.back}>
-              <Ionicons name="arrow-back" size={34} color={Colors.dark} />
-            </TouchableOpacity>
-          )
-        }}/>
-         <Stack.Screen name="login" options={{
-          title: '',
-          headerBackTitle:'',
-          headerShadowVisible:false,
-          headerStyle: {backgroundColor: Colors.background},
-          headerLeft:()=>(
-            <TouchableOpacity onPress={router.back}>
-              <Ionicons name="arrow-back" size={34} color={Colors.dark} />
-            </TouchableOpacity>
-          ),
-          headerRight:()=>(
-            <Link href={'/help'} asChild>
+    <Stack>
+      <Stack.Screen name="index" options={{headerShown:false}}/>
+      <Stack.Screen name="signup" options={{
+        title: '',
+        headerBackTitle:'',
+        headerShadowVisible:false,
+        headerStyle: {backgroundColor: Colors.background},
+        headerLeft:()=>(
+          <TouchableOpacity onPress={router.back}>
+            <Ionicons name="arrow-back" size={34} color={Colors.dark} />
+          </TouchableOpacity>
+        )
+      }}/>
+      <Stack.Screen name="login" options={{
+        title: '',
+        headerBackTitle:'',
+        headerShadowVisible:false,
+        headerStyle: {backgroundColor: Colors.background},
+        headerLeft:()=>(
+          <TouchableOpacity onPress={router.back}>
+            <Ionicons name="arrow-back" size={34} color={Colors.dark} />
+          </TouchableOpacity>
+        ),
+        headerRight:()=>(
+          <Link href={'/help'} asChild>
             <TouchableOpacity>
               <Ionicons name="help-circle-outline" size={34} color={Colors.dark} />
             </TouchableOpacity>
-            </Link>
-          )
-        }}/>
-        <Stack.Screen name="help" options={{title: 'Help', presentation:'modal'}}/>
-        <Stack.Screen name="verify/[phone]" options={{
-          title: '',
-          headerBackTitle:'',
-          headerShadowVisible:false,
-          headerStyle: {backgroundColor: Colors.background},
-          headerLeft:()=>(
-            <TouchableOpacity onPress={router.back}>
-              <Ionicons name="arrow-back" size={34} color={Colors.dark} />
+          </Link>
+        )
+      }}/>
+      <Stack.Screen name="help" options={{title: 'Help', presentation:'modal'}}/>
+      <Stack.Screen name="verify/[phone]" options={{
+        title: '',
+        headerBackTitle:'',
+        headerShadowVisible:false,
+        headerStyle: {backgroundColor: Colors.background},
+        headerLeft:()=>(
+          <TouchableOpacity onPress={router.back}>
+            <Ionicons name="arrow-back" size={34} color={Colors.dark} />
+          </TouchableOpacity>
+        )
+      }}/>
+      <Stack.Screen name="(authenticated)/(tabs)" options={{headerShown: false}}/>
+      <Stack.Screen name='(authenticated)/crypto/[id]' options={{
+        title: '',
+        headerLeft: () => (
+          <TouchableOpacity onPress={router.back}>
+            <Ionicons name="arrow-back" size={34} color={Colors.dark} />
+          </TouchableOpacity>
+        ),
+        headerLargeTitle: true,
+        headerTransparent: true,
+        headerRight: () => (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity>
+              <Ionicons name="notifications-outline" size={30} color={Colors.dark} />
             </TouchableOpacity>
-          )
-        }}/>
-        <Stack.Screen name="(authenticated)/(tabs)" options={{headerShown: false}}/>
-        <Stack.Screen name='(authenticated)/crypto/[id]' options={{
-          title: '',
-          headerLeft: () => (
-            <TouchableOpacity onPress={router.back}>
-              <Ionicons name="arrow-back" size={34} color={Colors.dark} />
+            <TouchableOpacity>
+              <Ionicons name="star-outline" size={30} color={Colors.dark} />
             </TouchableOpacity>
-          ),
-          headerLargeTitle: true,
-          headerTransparent: true,
-          headerRight: () => (
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity>
-                <Ionicons name="notifications-outline" size={30} color={Colors.dark} />
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Ionicons name="star-outline" size={30} color={Colors.dark} />
-              </TouchableOpacity>
-            </View>
-          ),
-        }}/>
-        <Stack.Screen name='(authenticated)/(modals)/lock' options={{
-          headerShown: false,
-          animation: 'none',
-        }}/>
-      </Stack>
-      )
+          </View>
+        ),
+      }}/>
+      <Stack.Screen name='(authenticated)/(modals)/lock' options={{
+        headerShown: false,
+        animation: 'none',
+      }}/>
+      <Stack.Screen name='(authenticated)/(modals)/account' options={{
+        presentation: 'transparentModal',
+        animation: 'fade',
+        title: '',
+        headerTransparent: true,
+        headerLeft: () => (
+          <TouchableOpacity onPress={router.back}>
+            <Ionicons name="close-outline" size={34} color={'#fff'} />
+          </TouchableOpacity>
+        ),
+      }}
+      />
+    </Stack>
+  )
 }
 
 export default function RootLayoutNav () {
-
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache}>
       <QueryClientProvider client={queryClient}>
@@ -200,7 +252,6 @@ export default function RootLayoutNav () {
           </GestureHandlerRootView>
         </UserInactivityProvider>
       </QueryClientProvider>
-  </ClerkProvider>
-
+    </ClerkProvider>
   )
 }

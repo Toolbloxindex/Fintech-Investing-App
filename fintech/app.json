@@ -31,18 +31,38 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      ["expo-router"],
+      [
+        "expo-router"
+      ],
       "expo-asset",
       "expo-secure-store",
-       [
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
         }
+      ],[
+        
+      "expo-dynamic-app-icon",
+       {
+          "default": { // icon name
+            "image": "./assets/icon.png", // icon path
+            "prerendered": true // for ios UIPrerenderedIcon option
+          },
+          "dark": {
+              "image": "./assets/icon-dark.png",
+              "prerendered": true // for ios UIPrerenderedIcon option
+          },
+          "vivid": {
+              "image": "./assets/icon-vivid.png",
+              "prerendered": true // for ios UIPrerenderedIcon option
+          }
+        }
       ]
-    ],
-    "experiments": {
+    ]
+  },
+  "experiments": {
       "typedRoutes": true
     }
   }
-}
+
