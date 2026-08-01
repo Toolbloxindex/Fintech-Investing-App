@@ -1,0 +1,1 @@
+Revolut-style clone with similar functionality and design. This project was built while learning React Native and was fully hand-coded, without the use of AI. It fetches financial asset data from APIs and features account creation and OAuth authentication.
